@@ -3,7 +3,30 @@ import google.generativeai as genai
 from pypdf import PdfReader
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="AI Career Coach", page_icon="👔", layout="wide")
+st.set_page_config(page_title="AI Career Coach V2", page_icon="🚀", layout="wide")
+
+# --- CUSTOM CSS ---
+st.markdown("""
+    <style>
+    div.stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        height: 3em;
+        font-weight: bold; 
+    }
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1E88E5;
+        margin-bottom: 0;
+    }
+    .sub-header {
+        font-size: 1.2rem;
+        color: #666;
+        margin-bottom: 2rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- SESSION STATE ---
 if "messages" not in st.session_state:
@@ -40,74 +63,72 @@ with st.sidebar:
 
     # 2. Target Job (Persistent)
     st.subheader("2. Target Job")
-    # We use a callback to ensure the state is updated immediately
     def update_jd():
         st.session_state.job_description = st.session_state.jd_input
 
     st.text_area(
         "Paste Job Description:", 
-        height=150, 
+        height=200, 
         key="jd_input",
         value=st.session_state.job_description,
-        on_change=update_jd
+        on_change=update_jd,
+        placeholder="Paste the full job posting here..."
     )
 
     if st.button("🗑️ Reset All"):
         st.session_state.clear()
         st.rerun()
 
-# --- BRAIN: SMART FALLBACK ENGINE ---
-def generate_response(system_prompt, user_prompt, _api_key):
-    # The Order of Battle: Speed -> Intelligence -> Endurance
-    models = [
-        "gemini-2.5-flash",       # Fast & Smart (Low Quota)
-        "gemini-2.5-flash-lite",  # Backup Speed
-        "gemma-3-27b-it",         # High Intelligence (Open Model)
-        "gemini-1.5-flash"        # The Tank (High Quota)
-    ]
-    
+# --- BRAIN: GENERATION ENGINE ---
+def generate_response(system_instruction, user_prompt, _api_key):
+    # V2 uses Gemini 1.5 Flash exclusively for stability and long context
     genai.configure(api_key=_api_key)
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
-    # We combine System + User into one block to ensure context is never lost
-    full_content = f"{system_prompt}\n\nUSER REQUEST: {user_prompt}"
-
-    for model_name in models:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(full_content)
-            return response.text, model_name
-        except Exception as e:
-            # If Rate Limit (429) or Overloaded, try next
-            if "429" in str(e) or "ResourceExhausted" in str(e):
-                continue
-            # If other error, keep trying down the list just in case
-            continue
-            
-    raise Exception("All models are busy. Please wait 1 minute.")
+    full_content = f"{system_instruction}\n\nUSER REQUEST: {user_prompt}"
+    
+    try:
+        response = model.generate_content(full_content)
+        return response.text
+    except Exception as e:
+        return f"Error: {e}"
 
 # --- MAIN UI ---
-st.title("👔 AI Career Coach")
+st.markdown('<p class="main-header">🚀 AI Career Coach V2</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Resume Matcher • Cover Letter Writer • Interview Prep</p>', unsafe_allow_html=True)
 
-# --- DASHBOARD CONTROL PANEL (New UI) ---
-# We only show this if data is loaded
+# --- COMMAND CENTER V2 (Expanded) ---
+# Only show controls if we have data
 if st.session_state.resume_text and st.session_state.job_description:
     with st.container(border=True):
-        st.markdown("### ⚡ Quick Action")
-        c1, c2, c3, c4 = st.columns(4)
+        st.markdown("### ⚡ Command Center")
         
+        # Row 1: Analysis Tools
+        c1, c2, c3 = st.columns(3)
         action = None
         
-        if c1.button("📊 Match Score", use_container_width=True):
-            action = "Compare my resume to the JD. Give a strict 0-10 score, list the gaps, and explain WHY."
+        with c1:
+            if st.button("📊 Match Score"):
+                action = "Compare my resume to the JD. Give a strict 0-10 score, list the gaps, and explain WHY."
+        with c2:
+            if st.button("🚩 Find Red Flags"):
+                action = "Roast my resume based on this JD. Be brutal. What keywords am I missing? What experience is weak?"
+        with c3:
+            if st.button("✍️ Rewrite Bullet"):
+                action = "Pick my weakest bullet point relevant to this job and rewrite it using 'Action-Result' format."
         
-        if c2.button("🚩 Find Red Flags", use_container_width=True):
-            action = "Roast my resume based on this JD. Be brutal. What keywords am I missing? What experience is weak?"
-            
-        if c3.button("✍️ Rewrite Bullet", use_container_width=True):
-            action = "Identify my weakest bullet point relevant to this job and rewrite it using 'Action-Result' format."
-            
-        if c4.button("📧 Cover Letter", use_container_width=True):
-            action = "Draft a short, punchy cover letter opening paragraph connecting my specific experience to this job."
+        # Row 2: Creation Tools (NEW IN V2)
+        c4, c5, c6 = st.columns(3)
+        
+        with c4:
+            if st.button("📝 Draft Cover Letter"):
+                action = "Write a tailored cover letter for this job. Use the 'Hook-Story-Close' framework. Use specific facts from my resume. Do not use placeholders like [Company Name] - fill them in."
+        with c5:
+            if st.button("🎤 Interview Prep"):
+                action = "Generate 3 tough behavioral interview questions specific to this JD and my resume. Then provide the ideal 'STAR method' talking points for each."
+        with c6:
+            if st.button("👋 Cold DM (LinkedIn)"):
+                action = "Write a short, punchy LinkedIn connection note (under 300 chars) to the hiring manager for this role. Mention a specific skill match."
 
 else:
     action = None
@@ -120,8 +141,6 @@ else:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        if "model" in message:
-            st.caption(f"🤖 {message['model']}")
 
 # --- INPUT HANDLING ---
 chat_input = st.chat_input("Ask a specific question...")
@@ -136,9 +155,8 @@ if final_prompt:
     with st.chat_message("user"):
         st.markdown(final_prompt)
         
-    # --- CONTEXT BUILDER (The Memory Fix) ---
-    # We reconstruct the 'Brain' every single time. 
-    # The AI is forced to read the Resume + JD on every turn.
+    # --- CONTEXT BUILDER ---
+    jd_text = st.session_state.job_description if st.session_state.job_description else "NO JD PROVIDED."
     
     system_instruction = f"""
     ROLE: You are an Expert Tech Recruiter and Career Coach.
@@ -147,35 +165,22 @@ if final_prompt:
     {st.session_state.resume_text}
     
     === TARGET JOB DESCRIPTION ===
-    {st.session_state.job_description}
+    {jd_text}
     
     INSTRUCTIONS:
-    - Answer the user's request based ONLY on the documents above.
+    - Answer based ONLY on the documents above.
     - Be concise, direct, and actionable.
-    - If suggesting changes, show "Before" and "After".
+    - For Cover Letters: Use a professional but modern tone.
+    - For Interview Prep: Focus on hard skills found in the JD.
     """
 
     # --- GENERATE ---
     with st.chat_message("assistant"):
-        placeholder = st.empty()
-        with st.spinner("Analyzing..."):
-            try:
-                response_text, used_model = generate_response(system_instruction, final_prompt, api_key)
-                
-                placeholder.markdown(response_text)
-                
-                # Metadata
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response_text, 
-                    "model": used_model
-                })
-                
-                # Feedback Toast
-                if "gemini-2.5" in used_model:
-                    st.toast(f"⚡ Speed Mode ({used_model})", icon="🚀")
-                else:
-                    st.toast(f"🛡️ Backup Mode ({used_model})", icon="🛡️")
-                    
-            except Exception as e:
-                st.error(f"Error: {e}")
+        with st.spinner("Processing..."):
+            response_text = generate_response(system_instruction, final_prompt, api_key)
+            st.markdown(response_text)
+            
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": response_text
+            })
