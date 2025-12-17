@@ -149,7 +149,7 @@ def generate_response(system_instruction, user_prompt, _api_key):
 
 # --- MAIN UI ---
 # Big Gradient Title
-st.markdown('<p class="big-title">🚀 AI Career Coach V2</p>', unsafe_allow_html=True)
+st.markdown('<p class="big-title">AI Career Coach V2</p>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Resume Matcher • Cover Letter Writer • Interview Prep</p>', unsafe_allow_html=True)
 
 # --- COMMAND CENTER V2 (Dark Mode) ---
