@@ -6,7 +6,7 @@ A smart, context-aware career assistant built with **Python** and **Google Gemin
 
 Unlike generic ATS scanners that just look for keywords, this AI understands the *nuance* of your experience. It compares your Resume PDF against a specific Job Description (JD) to provide a strict match score, identify missing skills, and even rewrite your bullet points in real-time.
 
-![App Screenshot}<img width="1359" height="602" alt="Screenshot 2025-12-17 184359" src="https://github.com/user-attachments/assets/51aed84b-d3c9-4143-8afa-5d4b90b0e703" />
+<img width="1359" height="602" alt="Screenshot 2025-12-17 184359" src="https://github.com/user-attachments/assets/51aed84b-d3c9-4143-8afa-5d4b90b0e703" />
 
 ---
 
@@ -135,4 +135,5 @@ Feel free to fork this repository and submit pull requests. Future roadmap ideas
 * Add Cover Letter generation.
 * Support for multiple resume versions.
 * Integration with LinkedIn scraping.
+
 
