@@ -56,9 +56,6 @@ A smart, context-aware career assistant built with **Python** and **Google Gemin
 
 Unlike generic ATS scanners that just look for keywords, this AI understands the *nuance* of your experience. It compares your Resume PDF against a specific Job Description (JD) to provide a strict match score, identify missing skills, and even rewrite your bullet points in real-time.
 
-![App Screenshot](https://via.placeholder.com/800x400.png?text=Add+Your+Screenshot+Here)
-*(Tip: Replace this link with a screenshot of your actual app running!)*
-
 ---
 
 ## 🚀 Key Features
@@ -76,7 +73,7 @@ Unlike generic ATS scanners that just look for keywords, this AI understands the
 ## 🛠️ Tech Stack
 
 * **Frontend:** [Streamlit](https://streamlit.io/) (Python-based UI).
-* **AI Engine:** [Google Gemini 1.5 Flash](https://deepmind.google/technologies/gemini/) (via `google-generativeai`).
+* **AI Engine:** [Google Gemini 2.5 Flash](https://deepmind.google/technologies/gemini/) (via `google-generativeai`).
 * **Data Processing:** `pypdf` for extracting text from PDF documents.
 * **Version Control:** Git & GitHub.
 * **Deployment:** Streamlit Cloud.
@@ -135,5 +132,6 @@ Feel free to fork this repository and submit pull requests. Future roadmap ideas
 * Add Cover Letter generation.
 * Support for multiple resume versions.
 * Integration with LinkedIn scraping.
+
 
 
