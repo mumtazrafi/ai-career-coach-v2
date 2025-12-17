@@ -1,29 +1,68 @@
 import streamlit as st
 import google.generativeai as genai
 from pypdf import PdfReader
+import time
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="AI Career Coach V2", page_icon="🚀", layout="wide")
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS (DARK MODE) ---
 st.markdown("""
     <style>
+    /* 1. Force Dark Background */
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    
+    /* 2. Big Title Styling - Neon Blue */
+    .big-title {
+        font-size: 3.5rem !important;
+        font-weight: 800;
+        background: -webkit-linear-gradient(45deg, #4facfe, #00f2fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0px;
+        text-align: center;
+    }
+    .subtitle {
+        font-size: 1.2rem;
+        color: #B0B0B0;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    /* 3. Button Styling - Dark Tech Look */
     div.stButton > button {
         width: 100%;
+        background-color: #1F2937;
+        color: #E5E7EB;
+        border: 1px solid #374151;
         border-radius: 8px;
+        font-weight: 600;
         height: 3em;
-        font-weight: bold; 
+        transition: all 0.2s ease;
     }
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1E88E5;
-        margin-bottom: 0;
+    div.stButton > button:hover {
+        background-color: #2563EB;
+        color: white;
+        border-color: #2563EB;
+        transform: scale(1.02);
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #666;
-        margin-bottom: 2rem;
+
+    /* 4. Container Styling (Command Center) */
+    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
+        background-color: #161B22; /* Darker card background */
+        border: 1px solid #30363D;
+        padding: 20px;
+        border-radius: 10px;
+    }
+    
+    /* 5. Inputs */
+    .stTextArea textarea {
+        background-color: #0D1117;
+        color: #C9D1D9;
+        border: 1px solid #30363D;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -79,31 +118,46 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# --- BRAIN: GENERATION ENGINE ---
+# --- BRAIN: SMART FALLBACK ENGINE ---
 def generate_response(system_instruction, user_prompt, _api_key):
-    # V2 uses Gemini 1.5 Flash exclusively for stability and long context
+    # YOUR REQUESTED MODEL ORDER
+    models_to_try = [
+        "gemini-2.5-flash",       # Fast & Smart (Low Quota)
+        "gemini-2.5-flash-lite",  # Backup Speed
+        "gemma-3-27b-it",         # High Intelligence (Open Model)
+        "gemini-1.5-flash"        # The Tank (High Quota)
+    ]
+    
     genai.configure(api_key=_api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
     
     full_content = f"{system_instruction}\n\nUSER REQUEST: {user_prompt}"
-    
-    try:
-        response = model.generate_content(full_content)
-        return response.text
-    except Exception as e:
-        return f"Error: {e}"
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(full_content)
+            return response.text, model_name
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "ResourceExhausted" in error_str or "404" in error_str:
+                continue
+            last_error = e
+            continue
+            
+    raise Exception(f"All models are busy. Last error: {last_error}")
 
 # --- MAIN UI ---
-st.markdown('<p class="main-header">🚀 AI Career Coach V2</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Resume Matcher • Cover Letter Writer • Interview Prep</p>', unsafe_allow_html=True)
+# Big Gradient Title
+st.markdown('<p class="big-title">🚀 AI Career Coach V2</p>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Resume Matcher • Cover Letter Writer • Interview Prep</p>', unsafe_allow_html=True)
 
-# --- COMMAND CENTER V2 (Expanded) ---
-# Only show controls if we have data
+# --- COMMAND CENTER V2 (Dark Mode) ---
 if st.session_state.resume_text and st.session_state.job_description:
-    with st.container(border=True):
+    with st.container():
         st.markdown("### ⚡ Command Center")
         
-        # Row 1: Analysis Tools
+        # Row 1: Analysis
         c1, c2, c3 = st.columns(3)
         action = None
         
@@ -117,30 +171,34 @@ if st.session_state.resume_text and st.session_state.job_description:
             if st.button("✍️ Rewrite Bullet"):
                 action = "Pick my weakest bullet point relevant to this job and rewrite it using 'Action-Result' format."
         
-        # Row 2: Creation Tools (NEW IN V2)
+        # Row 2: Creation
         c4, c5, c6 = st.columns(3)
         
         with c4:
-            if st.button("📝 Draft Cover Letter"):
-                action = "Write a tailored cover letter for this job. Use the 'Hook-Story-Close' framework. Use specific facts from my resume. Do not use placeholders like [Company Name] - fill them in."
+            if st.button("📝 Cover Letter"):
+                action = "Write a tailored cover letter for this job using the 'Hook-Story-Close' framework. Use facts from my resume."
         with c5:
             if st.button("🎤 Interview Prep"):
-                action = "Generate 3 tough behavioral interview questions specific to this JD and my resume. Then provide the ideal 'STAR method' talking points for each."
+                action = "Generate 3 tough behavioral questions specific to this JD and my resume. Provide 'STAR method' talking points."
         with c6:
             if st.button("👋 Cold DM (LinkedIn)"):
-                action = "Write a short, punchy LinkedIn connection note (under 300 chars) to the hiring manager for this role. Mention a specific skill match."
+                action = "Write a short, punchy LinkedIn connection note (under 300 chars) to the hiring manager."
 
 else:
     action = None
-    if not st.session_state.resume_text:
+    col1, col2 = st.columns(2)
+    with col1:
         st.info("👈 Step 1: Upload your Resume PDF.")
-    elif not st.session_state.job_description:
+    with col2:
         st.info("👈 Step 2: Paste the Job Description.")
 
 # --- CHAT HISTORY ---
+st.divider()
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        if "model" in message:
+            st.caption(f"🤖 {message['model']}")
 
 # --- INPUT HANDLING ---
 chat_input = st.chat_input("Ask a specific question...")
@@ -170,17 +228,31 @@ if final_prompt:
     INSTRUCTIONS:
     - Answer based ONLY on the documents above.
     - Be concise, direct, and actionable.
-    - For Cover Letters: Use a professional but modern tone.
-    - For Interview Prep: Focus on hard skills found in the JD.
+    - If suggesting changes, show "Before" and "After".
     """
 
     # --- GENERATE ---
     with st.chat_message("assistant"):
-        with st.spinner("Processing..."):
-            response_text = generate_response(system_instruction, final_prompt, api_key)
-            st.markdown(response_text)
-            
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": response_text
-            })
+        placeholder = st.empty()
+        with st.spinner("Analyzing..."):
+            try:
+                response_text, used_model = generate_response(system_instruction, final_prompt, api_key)
+                
+                placeholder.markdown(response_text)
+                
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response_text, 
+                    "model": used_model
+                })
+                
+                # Feedback Toast
+                if "gemini-2.5" in used_model:
+                    st.toast(f"⚡ Speed Mode ({used_model})", icon="🚀")
+                elif "gemma" in used_model:
+                    st.toast(f"🧠 Intelligence Mode ({used_model})", icon="🧠")
+                else:
+                    st.toast(f"🛡️ Backup Mode ({used_model})", icon="🛡️")
+                    
+            except Exception as e:
+                st.error(f"Error: {e}")
